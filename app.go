@@ -88,7 +88,12 @@ func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
 	out, err := dnscmd("/EnumRecords", vars["zoneName"], "@").Output()
 
 	if err != nil {
-		respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": err.Error()})
+		if err.Error() == "exit status 9601" {
+			// DNS_ERROR_ZONE_DOES_NOT_EXIST
+			respondWithJSON(w, http.StatusNotFound, nil)
+		} else {
+			respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": err.Error()})
+		}
 		return
 	}
 
