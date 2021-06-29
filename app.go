@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/kardianos/service"
 )
 
 type DnsZone struct {
@@ -265,7 +266,17 @@ const (
 	serverPort = 3111
 )
 
-func main() {
+var logger service.Logger
+
+type program struct{}
+
+func (p *program) Start(s service.Service) error {
+	// Start should not block. Do the actual work async.
+	go p.run()
+	return nil
+}
+
+func (p *program) run() {
 	r := mux.NewRouter()
 	r.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
@@ -290,5 +301,32 @@ func main() {
 		r,
 	); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func (p *program) Stop(s service.Service) error {
+	// Stop should not block. Return with a few seconds.
+	return nil
+}
+
+func main() {
+	svcConfig := &service.Config{
+		Name:        "WinDnsApi-Go",
+		DisplayName: "Windows DNS API written in Go",
+		Description: "Provides an HTTP API to manage Windows DNS on port 3111.",
+	}
+
+	prg := &program{}
+	s, err := service.New(prg, svcConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	logger, err = s.Logger(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = s.Run()
+	if err != nil {
+		logger.Error(err)
 	}
 }
