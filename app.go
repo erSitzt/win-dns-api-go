@@ -79,7 +79,7 @@ func read_aging(input string) int {
 	}
 	// Aging is "hours since 1601-01-01", convert to Unix timestamp
 	// https://social.technet.microsoft.com/forums/windowsserver/en-US/52f2c472-f8d5-42da-bcfc-d774bf93569b/dns-aging-dnscmd-time-format
-	return -11644476808 + (aging * 3600)
+	return -11644473600 + (aging * 3600)
 }
 
 func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
