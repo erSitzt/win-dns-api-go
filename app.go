@@ -11,6 +11,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func dnscmd(args ...string) *exec.Cmd {
+	return exec.Command("C:\\Windows\\System32\\dnscmd.exe", args...)
+}
+
 // DoDNSSet Set
 func DoDNSSet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -46,21 +50,21 @@ func DoDNSSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dnsCmdDeleteRecord := exec.Command("cmd", "/C", "dnscmd /recorddelete "+zoneName+" "+nodeName+" "+dnsType+" /f")
+	dnsCmdDeleteRecord := dnscmd("/recorddelete", zoneName, nodeName, dnsType, "/f")
 
 	if err := dnsCmdDeleteRecord.Run(); err != nil {
-		respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": err.Error()})
+		respondWithJSON(w, http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		return
 	}
 
-	dnsAddDeleteRecord := exec.Command("cmd", "/C", "dnscmd /recordadd "+zoneName+" "+nodeName+" "+dnsType+" "+ipAddress)
+	dnsAddDeleteRecord := dnscmd("/recordadd", zoneName, nodeName, dnsType, ipAddress)
 
 	if err := dnsAddDeleteRecord.Run(); err != nil {
-		respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": err.Error()})
+		respondWithJSON(w, http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		return
 	}
 
-	respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": "The alias ('A') record '" + nodeName + "." + zoneName + "' was successfully updated to '" + ipAddress + "'."})
+	respondWithJSON(w, http.StatusOK, map[string]string{"message": "The alias ('A') record '" + nodeName + "." + zoneName + "' was successfully updated to '" + ipAddress + "'."})
 }
 
 // DoDNSRemove Remove
@@ -90,18 +94,18 @@ func DoDNSRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dnsCmdDeleteRecord := exec.Command("cmd", "/C", "dnscmd /recorddelete "+zoneName+" "+nodeName+" "+dnsType+" /f")
+	dnsCmdDeleteRecord := dnscmd("/recorddelete", zoneName, nodeName, dnsType, "/f")
 
 	if err := dnsCmdDeleteRecord.Run(); err != nil {
-		respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": err.Error()})
+		respondWithJSON(w, http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		return
 	}
 
-	respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": "The alias ('A') record '" + nodeName + "." + zoneName + "' was successfully removed."})
+	respondWithJSON(w, http.StatusOK, map[string]string{"message": "The alias ('A') record '" + nodeName + "." + zoneName + "' was successfully removed."})
 }
 
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": "Could not get the requested route."})
+	respondWithJSON(w, http.StatusNotFound, map[string]string{"message": "Could not get the requested route."})
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
