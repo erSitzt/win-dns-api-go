@@ -30,7 +30,7 @@ type DnsRecord struct {
 }
 
 func dnscmd(args ...string) *exec.Cmd {
-	return exec.Command("C:\\Windows\\System32\\dnscmd.exe", args...)
+	return exec.Command("dnscmd.exe", args...)
 }
 
 func ListDNSZones(w http.ResponseWriter, r *http.Request) {
