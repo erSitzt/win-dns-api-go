@@ -128,7 +128,7 @@ func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
 						Aging: read_aging(fields[1]),
 						TTL:   ttl,
 						Type:  fields[3],
-						Value: fields[4],
+						Value: strings.Join(fields[4:], " "),
 					})
 				} else {
 					// Aging is missing - fields are name, ttl, type, value
@@ -138,7 +138,7 @@ func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
 						Aging: 0,
 						TTL:   ttl,
 						Type:  fields[2],
-						Value: fields[3],
+						Value: strings.Join(fields[3:], " "),
 					})
 				}
 			} else {
@@ -151,7 +151,7 @@ func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
 						Aging: read_aging(fields[1]),
 						TTL:   ttl,
 						Type:  fields[2],
-						Value: fields[3],
+						Value: strings.Join(fields[3:], " "),
 					})
 				} else {
 					// Aging is missing - fields are ttl, type, value
@@ -161,7 +161,7 @@ func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
 						Aging: 0,
 						TTL:   ttl,
 						Type:  fields[1],
-						Value: fields[2],
+						Value: strings.Join(fields[2:], " "),
 					})
 				}
 			}
