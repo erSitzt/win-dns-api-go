@@ -294,11 +294,9 @@ func (p *program) run() {
 	r.Methods("GET").Path("/dns/").HandlerFunc(ListDNSZones)
 	r.Methods("GET").Path("/dns/{zoneName}").HandlerFunc(ListDNSRecords)
 
-	r.Methods("GET").Path("/dns/{zoneName}/{dnsType}/{nodeName}/set/{ipAddress}").HandlerFunc(DoDNSSet)
 	r.Methods("POST").Path("/dns/{zoneName}/{dnsType}/{nodeName}/set/{ipAddress}").HandlerFunc(DoDNSSet)
 
-	r.Methods("GET").Path("/dns/{zoneName}/{dnsType}/{nodeName}/remove").HandlerFunc(DoDNSRemove)
-	r.Methods("POST").Path("/dns/{zoneName}/{dnsType}/{nodeName}/remove").HandlerFunc(DoDNSRemove)
+	r.Methods("DELETE").Path("/dns/{zoneName}/{dnsType}/{nodeName}/remove").HandlerFunc(DoDNSRemove)
 
 	fmt.Printf("Listening on port %d.\n", serverPort)
 

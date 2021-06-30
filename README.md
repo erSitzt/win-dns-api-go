@@ -14,23 +14,23 @@ This README will be updated as the project grows. Any contributions are welcomed
 
 The API defines these URLs:
 
-* `/`
+* `/` (`GET`)
 
     A simple welcome page.
 
-* `/dns/`
+* `/dns/` (`GET`)
 
     Lists all DNS zones known to this DNS server.
 
-* `/dns/<zoneName>`
+* `/dns/<zoneName>` (`GET`)
 
     Lists all DNS records in a given Zone.
 
-* `/dns/<zoneName>/<dnsType>/<nodeName>/set/<ipAddress>`
+* `/dns/<zoneName>/<dnsType>/<nodeName>/set/<ipAddress>` (`POST`)
 
     Creates or updates a DNS record. Note this will replace _all_ existing records for the given `nodeName` and `type`.
 
-* `/dns/<zoneName>/<dnsType>/<nodeName>/remove`
+* `/dns/<zoneName>/<dnsType>/<nodeName>/remove` (`DELETE`)
 
     Removes all records of the given `type` for the given `nodeName`.
 
