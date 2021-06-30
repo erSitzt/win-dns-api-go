@@ -25,6 +25,10 @@ The API defines these URLs:
 
     Lists all DNS records in a given Zone.
 
+* `/dns/<zoneName>/db.txt` (`GET`)
+
+    Generates a Zonefile to be used with a DNS server such as Bind9.
+
 * `/dns/<zoneName>/<dnsType>/<nodeName>/set/<ipAddress>` (`POST`)
 
     Creates or updates a DNS record. Note this will replace _all_ existing records for the given `nodeName` and `type`.

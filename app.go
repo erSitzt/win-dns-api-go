@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/gorilla/mux"
 	"github.com/kardianos/service"
@@ -83,19 +83,11 @@ func read_aging(input string) int {
 	return -11644473600 + (aging * 3600)
 }
 
-func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	out, err := dnscmd("/EnumRecords", vars["zoneName"], "@").Output()
+func records_for_zone(zone_name string) ([]DnsRecord, error) {
+	out, err := dnscmd("/EnumRecords", zone_name, "@").Output()
 
 	if err != nil {
-		if err.Error() == "exit status 9601" {
-			// DNS_ERROR_ZONE_DOES_NOT_EXIST
-			respondWithJSON(w, http.StatusNotFound, nil)
-		} else {
-			respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": err.Error()})
-		}
-		return
+		return nil, err
 	}
 
 	var all_records []DnsRecord
@@ -167,7 +159,60 @@ func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	return all_records, nil
+}
+
+func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	all_records, err := records_for_zone(vars["zoneName"])
+
+	if err != nil {
+		if err.Error() == "exit status 9601" {
+			// DNS_ERROR_ZONE_DOES_NOT_EXIST
+			respondWithJSON(w, http.StatusNotFound, nil)
+		} else {
+			respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": err.Error()})
+		}
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, all_records)
+}
+
+var zoneTemplate = template.Must(template.New("").Parse(
+	`$ORIGIN {{.ZoneName}}.
+{{range .AllRecords -}}
+{{.Name | printf "%-30s"}} {{.TTL | printf "%6d"}}  {{.Type | printf "%-10s"}} {{.Value}}
+{{end -}}
+`))
+
+func CreateZonefile(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	all_records, err := records_for_zone(vars["zoneName"])
+
+	if err != nil {
+		if err.Error() == "exit status 9601" {
+			// DNS_ERROR_ZONE_DOES_NOT_EXIST
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	err = zoneTemplate.Execute(w,
+		struct {
+			AllRecords []DnsRecord
+			ZoneName   string
+		}{
+			AllRecords: all_records,
+			ZoneName:   vars["zoneName"],
+		})
+	if err != nil {
+		log.Println(err.Error())
+	}
 }
 
 // DoDNSSet Set
@@ -297,13 +342,14 @@ func (p *program) run() {
 
 	r.Methods("GET").Path("/dns/").HandlerFunc(ListDNSZones)
 	r.Methods("GET").Path("/dns/{zoneName}").HandlerFunc(ListDNSRecords)
+	r.Methods("GET").Path("/dns/{zoneName}/db.txt").HandlerFunc(CreateZonefile)
 
 	if p.writable {
 		r.Methods("POST").Path("/dns/{zoneName}/{dnsType}/{nodeName}/set/{ipAddress}").HandlerFunc(DoDNSSet)
 		r.Methods("DELETE").Path("/dns/{zoneName}/{dnsType}/{nodeName}/remove").HandlerFunc(DoDNSRemove)
 	}
 
-	fmt.Printf("Listening on %s.\n", p.servaddr)
+	log.Printf("Listening on %s.\n", p.servaddr)
 
 	// Start HTTP Server
 	if err := http.ListenAndServe(p.servaddr, r); err != nil {
