@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -275,7 +276,9 @@ const (
 
 var logger service.Logger
 
-type program struct{}
+type program struct {
+	writable bool
+}
 
 func (p *program) Start(s service.Service) error {
 	// Start should not block. Do the actual work async.
@@ -294,9 +297,10 @@ func (p *program) run() {
 	r.Methods("GET").Path("/dns/").HandlerFunc(ListDNSZones)
 	r.Methods("GET").Path("/dns/{zoneName}").HandlerFunc(ListDNSRecords)
 
-	r.Methods("POST").Path("/dns/{zoneName}/{dnsType}/{nodeName}/set/{ipAddress}").HandlerFunc(DoDNSSet)
-
-	r.Methods("DELETE").Path("/dns/{zoneName}/{dnsType}/{nodeName}/remove").HandlerFunc(DoDNSRemove)
+	if p.writable {
+		r.Methods("POST").Path("/dns/{zoneName}/{dnsType}/{nodeName}/set/{ipAddress}").HandlerFunc(DoDNSSet)
+		r.Methods("DELETE").Path("/dns/{zoneName}/{dnsType}/{nodeName}/remove").HandlerFunc(DoDNSRemove)
+	}
 
 	fmt.Printf("Listening on port %d.\n", serverPort)
 
@@ -315,13 +319,16 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func main() {
+	var writable = flag.Bool("rw", false, "Enable read-write mode (i.e., allow set and remove)")
+	flag.Parse()
+
 	svcConfig := &service.Config{
 		Name:        "WinDnsApi-Go",
 		DisplayName: "Windows DNS API written in Go",
 		Description: "Provides an HTTP API to manage Windows DNS on port 3111.",
 	}
 
-	prg := &program{}
+	prg := &program{writable: *writable}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
 		log.Fatal(err)
