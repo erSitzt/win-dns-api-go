@@ -277,6 +277,7 @@ const (
 var logger service.Logger
 
 type program struct {
+	servaddr string
 	writable bool
 }
 
@@ -302,13 +303,10 @@ func (p *program) run() {
 		r.Methods("DELETE").Path("/dns/{zoneName}/{dnsType}/{nodeName}/remove").HandlerFunc(DoDNSRemove)
 	}
 
-	fmt.Printf("Listening on port %d.\n", serverPort)
+	fmt.Printf("Listening on %s.\n", p.servaddr)
 
 	// Start HTTP Server
-	if err := http.ListenAndServe(
-		fmt.Sprintf(":%d", serverPort),
-		r,
-	); err != nil {
+	if err := http.ListenAndServe(p.servaddr, r); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -320,15 +318,19 @@ func (p *program) Stop(s service.Service) error {
 
 func main() {
 	var writable = flag.Bool("rw", false, "Enable read-write mode (i.e., allow set and remove)")
+	var servaddr = flag.String("addr", ":3111", "http service address")
 	flag.Parse()
 
 	svcConfig := &service.Config{
 		Name:        "WinDnsApi-Go",
 		DisplayName: "Windows DNS API written in Go",
-		Description: "Provides an HTTP API to manage Windows DNS on port 3111.",
+		Description: "Provides an HTTP API to manage Windows DNS on " + *servaddr,
 	}
 
-	prg := &program{writable: *writable}
+	prg := &program{
+		servaddr: *servaddr,
+		writable: *writable,
+	}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
 		log.Fatal(err)
