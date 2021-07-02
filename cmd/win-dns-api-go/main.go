@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"text/template"
 
+	"github.com/Svedrin/win-dns-api-go/templates"
 	"github.com/Svedrin/win-dns-api-go/types"
 	"github.com/gorilla/mux"
 	"github.com/kardianos/service"
@@ -165,13 +165,6 @@ func ListDNSRecords(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, all_records)
 }
 
-var zoneTemplate = template.Must(template.New("").Parse(
-	`$ORIGIN {{.ZoneName}}.
-{{range .AllRecords -}}
-{{.Name | printf "%-30s"}} {{.TTL | printf "%6d"}}  {{.Type | printf "%-10s"}} {{.Value}}
-{{end -}}
-`))
-
 func CreateZonefile(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	all_records, err := records_for_zone(vars["zoneName"])
@@ -188,7 +181,7 @@ func CreateZonefile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	err = zoneTemplate.Execute(w,
+	err = templates.ZoneTemplate.Execute(w,
 		struct {
 			AllRecords []types.DnsRecord
 			ZoneName   string
