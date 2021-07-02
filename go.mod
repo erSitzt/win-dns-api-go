@@ -1,4 +1,4 @@
-module win-dns-api-go
+module github.com/Svedrin/win-dns-api-go
 
 go 1.14
 

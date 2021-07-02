@@ -12,24 +12,10 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Svedrin/win-dns-api-go/types"
 	"github.com/gorilla/mux"
 	"github.com/kardianos/service"
 )
-
-type DnsZone struct {
-	Name       string
-	Type       string
-	Storage    string
-	Properties []string
-}
-
-type DnsRecord struct {
-	Name  string
-	Type  string
-	TTL   int
-	Value string
-	Aging int
-}
 
 func dnscmd(args ...string) *exec.Cmd {
 	return exec.Command("dnscmd.exe", args...)
@@ -43,7 +29,7 @@ func ListDNSZones(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var all_zones []DnsZone
+	var all_zones []types.DnsZone
 	in_list_of_zones := false
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 	for scanner.Scan() {
@@ -58,7 +44,7 @@ func ListDNSZones(w http.ResponseWriter, r *http.Request) {
 			fields := strings.Fields(line)
 			if len(fields) >= 3 {
 				// line contains Zone_name, Type, Storage, [Properties...]
-				all_zones = append(all_zones, DnsZone{
+				all_zones = append(all_zones, types.DnsZone{
 					Name:       fields[0],
 					Type:       fields[1],
 					Storage:    fields[2],
@@ -83,14 +69,14 @@ func read_aging(input string) int {
 	return -11644473600 + (aging * 3600)
 }
 
-func records_for_zone(zone_name string) ([]DnsRecord, error) {
+func records_for_zone(zone_name string) ([]types.DnsRecord, error) {
 	out, err := dnscmd("/EnumRecords", zone_name, "@").Output()
 
 	if err != nil {
 		return nil, err
 	}
 
-	var all_records []DnsRecord
+	var all_records []types.DnsRecord
 	in_list_of_records := false
 	prev_record_name := ""
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
@@ -115,7 +101,7 @@ func records_for_zone(zone_name string) ([]DnsRecord, error) {
 				if len(fields) == 5 {
 					// Aging is set - fields are name, aging, ttl, type, value
 					ttl, _ := strconv.Atoi(fields[2])
-					all_records = append(all_records, DnsRecord{
+					all_records = append(all_records, types.DnsRecord{
 						Name:  fields[0],
 						Aging: read_aging(fields[1]),
 						TTL:   ttl,
@@ -125,7 +111,7 @@ func records_for_zone(zone_name string) ([]DnsRecord, error) {
 				} else {
 					// Aging is missing - fields are name, ttl, type, value
 					ttl, _ := strconv.Atoi(fields[1])
-					all_records = append(all_records, DnsRecord{
+					all_records = append(all_records, types.DnsRecord{
 						Name:  fields[0],
 						Aging: 0,
 						TTL:   ttl,
@@ -138,7 +124,7 @@ func records_for_zone(zone_name string) ([]DnsRecord, error) {
 				if len(fields) == 4 {
 					// Aging is set - fields are aging, ttl, type, value
 					ttl, _ := strconv.Atoi(fields[1])
-					all_records = append(all_records, DnsRecord{
+					all_records = append(all_records, types.DnsRecord{
 						Name:  prev_record_name,
 						Aging: read_aging(fields[1]),
 						TTL:   ttl,
@@ -148,7 +134,7 @@ func records_for_zone(zone_name string) ([]DnsRecord, error) {
 				} else {
 					// Aging is missing - fields are ttl, type, value
 					ttl, _ := strconv.Atoi(fields[0])
-					all_records = append(all_records, DnsRecord{
+					all_records = append(all_records, types.DnsRecord{
 						Name:  prev_record_name,
 						Aging: 0,
 						TTL:   ttl,
@@ -204,7 +190,7 @@ func CreateZonefile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = zoneTemplate.Execute(w,
 		struct {
-			AllRecords []DnsRecord
+			AllRecords []types.DnsRecord
 			ZoneName   string
 		}{
 			AllRecords: all_records,
