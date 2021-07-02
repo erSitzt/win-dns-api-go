@@ -1,0 +1,15 @@
+---
+kind: pipeline
+name: default
+
+steps:
+- name: build
+  image: alpine:3.14
+  commands:
+  - apk add --no-cache bash go
+  - ./build.sh
+---
+kind: signature
+hmac: 4cb8748d050402f9081ee762b95f49104a70eeaa85acb8ae5dffa33d570b9fc8
+
+...
