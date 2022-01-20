@@ -1,10 +1,12 @@
 package types
 
 type DnsZone struct {
-	Name       string
-	Type       string
-	Storage    string
-	Properties []string
+	ZoneName       		string
+	ZoneType       		string
+	IsAutoCreated  		string
+	IsDsIntegrated 		string
+	IsReverseLookupZone string
+	IsSigned 			string
 }
 
 type DnsRecord struct {

@@ -22,7 +22,7 @@ func dnscmd(args ...string) *exec.Cmd {
 }
 
 func ListDNSZones(w http.ResponseWriter, r *http.Request) {
-	out, err := dnscmd("/EnumZones").Output()
+	out, err := exec.Command("powershell", "-nologo", "-noprofile", "Get-DnsServerZone -ComputerName 172.16.1.1 | ft -hidetableheaders").CombinedOutput()
 
 	if err != nil {
 		respondWithJSON(w, http.StatusBadRequest, map[string]string{"message": err.Error()})
@@ -30,31 +30,27 @@ func ListDNSZones(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var all_zones []types.DnsZone
-	in_list_of_zones := false
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !in_list_of_zones {
-			if strings.HasPrefix(line, " Zone name") {
-				in_list_of_zones = true
-			}
-		} else if line == "Command completed successfully." {
-			in_list_of_zones = false
-		} else {
-			fields := strings.Fields(line)
-			if len(fields) >= 3 {
-				// line contains Zone_name, Type, Storage, [Properties...]
-				all_zones = append(all_zones, types.DnsZone{
-					Name:       fields[0],
-					Type:       fields[1],
-					Storage:    fields[2],
-					Properties: fields[3:],
-				})
-			}
+		log.Printf("Line :  %s.\n", line)
+		fields := strings.Fields(line)
+		if len(fields) >= 6 {
+
+			all_zones = append(all_zones, types.DnsZone{
+				ZoneName:       fields[0],
+				ZoneType:       fields[1],
+				IsAutoCreated:    fields[2],
+				IsDsIntegrated: fields[3],
+				IsReverseLookupZone: fields[4],
+				IsSigned: fields[5],
+			})
 		}
+		
 	}
 	respondWithJSON(w, http.StatusOK, all_zones)
 }
+
 
 func read_aging(input string) int {
 	if !strings.HasPrefix(input, "[Aging:") || !strings.HasSuffix(input, "]") {
